@@ -20,13 +20,24 @@ namespace WebAPI.Controllers
                 Email.Parse(model.Email),
                 PhoneNumber.Parse(model.PhoneNumber));
 
-            var user = result.AsT0;
-            return Ok(new UserPostResponse
-            {
-                Name = user.Name,
-                Email = user.Email,
-                PhoneNumber = user.PhoneNumber
-            });
+            return result.Match<IActionResult>(
+                (DomainUser user) => Ok(new UserPostResponse
+                {
+                    Name = user.Name,
+                    Email = user.Email,
+                    PhoneNumber = user.PhoneNumber
+                }),
+                (EmptyArgument _) =>
+                {
+                    ModelState.AddModelError(nameof(UserPostRequest.Name), "The name must not be empty.");
+                    return BadRequest(ModelState);
+                },
+                (InvalidLength _) =>
+                {
+                    ModelState.AddModelError(nameof(UserPostRequest.Name), "The name is invalid.");
+                    return BadRequest(ModelState);
+                }
+            );
         }
     }
 }
